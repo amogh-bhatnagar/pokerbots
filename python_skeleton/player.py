@@ -37,6 +37,7 @@ class Player(Bot):
         my_cards: a list of the 6 cards given to us at round start
         '''
         ranks = {}
+        high_cards = [7, 8, 9, 'T', 'J', 'Q', 'K', 'A']
 
         for card in my_cards:
             card_rank = card[0] #2 - 9, T, J, Q, K, A
@@ -66,15 +67,63 @@ class Player(Bot):
                 pairs.append(cards[1])
                 singles.append(cards[2])
 
+        #Find current board
+        cur_board = 0
+
+        #Find the high singles and low singles
+        high_singles = [card for card in singles if card[0] in high_cards]
+        low_singles = [card for card in singles if not card[0] in high_cards]
+
+        #Sort now by suit, suit pairs should be grouped up!
+        low_singles.sort(key = lambda card: card[1])
+
+        while cur_board < NUM_BOARDS:
+            #check if we have pairs 
+            #Pairs Circuit
+            if 2*cur_board + 1 < len(pairs):
+                #Check if the hole is strong
+                if pairs[2*cur_board][0] in high_cards:
+                    self.strong_hole = True
+
+                #record our allocations
+                cards = [pairs[2*cur_board], pairs[2*cur_board + 1]]
+                self.board_allocations[cur_board] = cards 
+            #Singles Circuit
+            else:
+                #Sort by high card first
+                
+                #First try to spread out the high singles
+                if len(high_singles) > 0 and len(low_singles) > 0:
+                    cards = [high_singles.pop(), low_singles.pop()]
+                    self.board_allocations[cur_board] = cards 
+                
+                #If we only have high singles left
+                elif len(high_singles) > 1:
+                     cards = [high_singles.pop(), high_singles.pop()]
+                     self.board_allocations[cur_board] = cards 
+
+                #At this point only low_singles should have cards, and because they are grouped by suit, just straight add them
+                else:
+                    #record our allocations
+                    cards = [low_singles.pop(), low_singles.pop()]
+                    self.board_allocations[cur_board] = cards 
+                    
+            cur_board += 1
+                
+                
+
+        """
         if len(pairs) > 0: #we found a pair! update our state to say that this is a strong round
+            #ALso add if the pair is above 7 to mark this
             self.strong_hole = True
         
+        #For non singles, high card then suits
         allocation = pairs + singles 
 
         for i in range(NUM_BOARDS): #subsequent pairs of cards should be pocket pairs if we found any
             cards = [allocation[2*i], allocation[2*i + 1]]
             self.board_allocations[i] = cards #record our allocations
-        
+        """
         pass
 
     def calcualte_strength(self, hole, iters): 

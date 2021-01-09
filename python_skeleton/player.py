@@ -37,7 +37,8 @@ class Player(Bot):
         my_cards: a list of the 6 cards given to us at round start
         '''
         ranks = {}
-        high_cards = [7, 8, 9, 'T', 'J', 'Q', 'K', 'A']
+        high_pairs = [7, 8, 9, 'T', 'J', 'Q', 'K', 'A']
+        high_cards = [9, "T", "J", "Q", "K", "A"]
 
         for card in my_cards:
             card_rank = card[0] #2 - 9, T, J, Q, K, A
@@ -82,7 +83,7 @@ class Player(Bot):
             #Pairs Circuit
             if 2*cur_board + 1 < len(pairs):
                 #Check if the hole is strong
-                if pairs[2*cur_board][0] in high_cards:
+                if pairs[2*cur_board][0] in high_pairs:
                     self.strong_hole = True
 
                 #record our allocations

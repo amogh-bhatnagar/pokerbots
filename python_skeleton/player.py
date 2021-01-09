@@ -124,7 +124,7 @@ class Player(Bot):
             cards = [allocation[2*i], allocation[2*i + 1]]
             self.board_allocations[i] = cards #record our allocations
         """
-        pass
+        # there's a pass here, I'll check if this funciton is running at all
 
     def calcualte_strength(self, hole, iters): 
         '''
@@ -190,7 +190,7 @@ class Player(Bot):
         my_cards = round_state.hands[active]  # your six cards at the start of the round
         big_blind = bool(active)  # True if you are the big blind
 
-        _MONTE_CARLO_ITERS = 100 #the number of monte carlo samples we will use
+        _MONTE_CARLO_ITERS = 1000 #the number of monte carlo samples we will use (before 100)
         
         self.allocate_cards(my_cards) #our old allocation strategy
 

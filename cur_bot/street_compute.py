@@ -77,6 +77,7 @@ if __name__ == '__main__':
     for hole in holes:
         for board in board_cards:
             if not any(card in board for card in hole):
+                print(hole+board)
                 all_strengths.append(calculate_strength(hole, _MONTE_CARLO_ITERS, board, _STREET))
                 all_cards.append(hole + board)
 

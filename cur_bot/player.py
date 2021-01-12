@@ -9,6 +9,7 @@ from skeleton.runner import parse_args, run_bot
 
 import eval7
 import random
+import pandas as pd 
 
 
 class Player(Bot):
@@ -19,18 +20,32 @@ class Player(Bot):
     def __init__(self):
         '''
         Called when a new game starts. Called exactly once.
+
         Arguments:
         Nothing.
+
         Returns:
         Nothing.
         ''' 
         self.board_allocations = [[], [], []] #keep track of our allocations at round start
-        self.hole_strengths = [0, 0, 0] #better representation of our hole strengths (win probability!)
+        self.hole_strengths = [0, 0, 0] #better representation of our hole strengths per round (win probability!)
         self.MONTE_CARLO_ITERS = 100 #the number of monte carlo samples we will use
 
-    def rank_to_numeric(self, rank):
+        #make sure this df isn't too big!! Loading data all at once might be slow if you did more computations!
+        calculated_df = pd.read_csv('hole_strengths.csv') #the values we computed offline, this df is slow to search through though
+        holes = calculated_df.Holes #the columns of our spreadsheet
+        strengths = calculated_df.Strengths
+        self.starting_strengths = dict(zip(holes, strengths)) #convert to a dictionary, O(1) lookup time!
 
-        if rank.isnumeric(): #2-9 
+
+    def rank_to_numeric(self, rank):
+        '''
+        Method that converts our given rank as a string
+        into an integer ranking
+
+        rank: str - one of 'A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, 2'
+        '''
+        if rank.isnumeric(): #2-9, we can just use the int version of this string
             return int(rank)
         elif rank == 'T': #10 is T, so we need to specify it here
             return 10
@@ -40,59 +55,42 @@ class Player(Bot):
             return 12
         elif rank == 'K':
             return 13
-        else: #Ace (A) is the only one left
+        else: #Ace (A) is the only one left, give it the highest rank
             return 14
 
+
     def sort_cards_by_rank(self, cards):
+        '''
+        Method that takes in a list of cards in the engine's format
+        and sorts them by rank order
+
+        cards: list - a list of card strings in the engine's format (Kd, As, Th, 7d, etc.)
+        '''
         return sorted(cards, reverse=True, key=lambda x: self.rank_to_numeric(x[0])) #we want it in descending order
-    
 
-    def calculate_strength(self, hole, iters): 
+
+    def hole_list_to_key(self, hole):
         '''
-        A Monte Carlo method meant to estimate the win probability of a pair of 
-        hole cards. Simlulates 'iters' games and determines the win rates of our cards
-        Arguments:
-        hole: a list of our two hole cards
-        iters: a integer that determines how many Monte Carlo samples to take
+        Converts a hole card list into a key that we can use to query our 
+        strength dictionary
+
+        hole: list - A list of two card strings in the engine's format (Kd, As, Th, 7d, etc.)
         '''
+        card_1 = hole[0] #get all of our relevant info
+        card_2 = hole[1]
 
-        deck = eval7.Deck() #eval7 object!
-        hole_cards = [eval7.Card(card) for card in hole] #card objects, used to evaliate hands
+        rank_1, suit_1 = card_1[0], card_1[1] #card info
+        rank_2, suit_2 = card_2[0], card_2[1]
 
-        for card in hole_cards: #remove cards that we know about! they shouldn't come up in simulations
-            deck.cards.remove(card)
+        numeric_1, numeric_2 = self.rank_to_numeric(rank_1), self.rank_to_numeric(rank_2) #make numeric
 
-        score = 0
+        suited = suit_1 == suit_2 #off-suit or not
+        suit_string = 's' if suited else 'o'
 
-        for _ in range(iters): #take 'iters' samples
-            deck.shuffle() #make sure our samples are random
-
-            _COMM = 5 #the number of cards we need to draw
-            _OPP = 2
-
-            draw = deck.peek(_COMM + _OPP)
-
-            opp_hole = draw[: _OPP]
-            community = draw[_OPP: ]
-
-            our_hand = hole_cards + community #the two showdown hands
-            opp_hand = opp_hole + community
-
-            our_hand_value = eval7.evaluate(our_hand) #the ranks of our hands (only useful for comparisons)
-            opp_hand_value = eval7.evaluate(opp_hand)
-
-            if our_hand_value > opp_hand_value: #we win!
-                score += 2
-            
-            elif our_hand_value == opp_hand_value: #we tie.
-                score += 1
-            
-            else: #we lost....
-                score += 0
-        
-        hand_strength = score / (2 * iters) #this is our win probability!
-
-        return hand_strength
+        if numeric_1 >= numeric_2: #keep our hole cards in rank order
+            return rank_1 + rank_2 + suit_string
+        else:
+            return rank_2 + rank_1 + suit_string
 
 
     def allocate_cards(self, my_cards):
@@ -101,6 +99,7 @@ class Player(Bot):
         modifies self.board_allocations. The method attempts to make pairs
         by allocating hole cards that share a rank if possible. The exact
         stack these cards are allocated to is not defined.
+
         Arguments:
         my_cards: a list of the 6 cards given to us at round start
         '''
@@ -211,21 +210,28 @@ class Player(Bot):
 
 
     def assign_holes(self, hole_cards):
+        '''
+        A method that assigns the created hole cards to particular boards
+
+        hole_cards: list - a list of lists, where each list is a hole card pair in the
+                    engine's format
+        '''
 
         holes_and_strengths = [] #keep track of holes and their strengths
 
         for hole in hole_cards:
-            strength = self.calculate_strength(hole, self.MONTE_CARLO_ITERS) #use our monte carlo sim!
+            key = self.hole_list_to_key(hole)
+            strength = self.starting_strengths[key]
             holes_and_strengths.append((hole, strength))
         
         holes_and_strengths = sorted(holes_and_strengths, key=lambda x: x[1]) #sort them by strength
 
-        if random.random() < 0.10: #swap strongest with second, makes our strategy non-deterministic!
+        if random.random() < 0.15: #swap strongest with second, makes our strategy non-deterministic!
             temp = holes_and_strengths[2]
             holes_and_strengths[2] = holes_and_strengths[1]
             holes_and_strengths[1] = temp
         
-        if random.random() < 0.10: #swap second with last, makes us even more random
+        if random.random() < 0.15: #swap second with last, makes us even more random
             temp = holes_and_strengths[1]
             holes_and_strengths[1] = holes_and_strengths[0]
             holes_and_strengths[0] = temp
@@ -238,10 +244,12 @@ class Player(Bot):
     def handle_new_round(self, game_state, round_state, active):
         '''
         Called when a new round starts. Called NUM_ROUNDS times.
+
         Arguments:
         game_state: the GameState object.
         round_state: the RoundState object.
         active: your player's index.
+
         Returns:
         Nothing.
         '''
@@ -260,10 +268,12 @@ class Player(Bot):
     def handle_round_over(self, game_state, terminal_state, active):
         '''
         Called when a round ends. Called NUM_ROUNDS times.
+
         Arguments:
         game_state: the GameState object.
         terminal_state: the TerminalState object.
         active: your player's index.
+
         Returns:
         Nothing.
         '''
@@ -278,6 +288,7 @@ class Player(Bot):
         
         self.board_allocations = [[], [], []] #reset our variables at the end of every round!
         self.hole_strengths = [0, 0, 0]
+        self.last_seen_street = 0
 
         game_clock = game_state.game_clock #check how much time we have remaining at the end of a game
         round_num = game_state.round_num #Monte Carlo takes a lot of time, we use this to adjust!
@@ -289,10 +300,12 @@ class Player(Bot):
         '''
         Where the magic happens - your code should implement this function.
         Called any time the engine needs a triplet of actions from your bot.
+
         Arguments:
         game_state: the GameState object.
         round_state: the RoundState object.
         active: your player's index.
+
         Returns:
         Your actions.
         '''
@@ -354,7 +367,7 @@ class Player(Bot):
 
                 if board_cont_cost > 0: #our opp raised!!! we must respond
 
-                    if board_cont_cost > 4: #<--- parameters to tweak. 
+                    if board_cont_cost > 5: #<--- parameters to tweak. 
                         _INTIMIDATION = 0.15
                         strength = max([0, strength - _INTIMIDATION]) #if our opp raises a lot, be cautious!
                     

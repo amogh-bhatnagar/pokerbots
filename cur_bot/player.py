@@ -294,7 +294,30 @@ class Player(Bot):
         round_num = game_state.round_num #Monte Carlo takes a lot of time, we use this to adjust!
         if round_num == NUM_ROUNDS:
             print(game_clock)
+    
+    def check_hand_tight(self, hole):
+        '''
+        Given a list of length 2 checks if it should be played TAG
+
+        Arguments:
+        hole: Hole cards, list of two
+
+        Return:
+        boolean of whether or not the hole should be played aggresivley
+        '''
+        key = self.hole_list_to_key(hole)
+
+        #If we have two face cards: stronks
+        if key[0] in ['A', 'K', 'Q', 'J'] and key[1] in ['A', 'K', 'Q', 'J']:
+            return True
+
+        elif key[0] == key[1] and key[0] in ['A', 'K', 'Q', 'J', 'T', 9, 8]:
+            return True
         
+        return False
+
+
+
 
     def get_actions(self, game_state, round_state, active):
         '''
@@ -326,6 +349,7 @@ class Player(Bot):
         for i in range(NUM_BOARDS):
             if AssignAction in legal_actions[i]:
                 cards = self.board_allocations[i] #assign our cards that we made earlier
+                #DO IT HERE
                 my_actions[i] = AssignAction(cards) #add to our actions
 
             elif isinstance(round_state.board_states[i], TerminalState): #make sure the game isn't over at this board

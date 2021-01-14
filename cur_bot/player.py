@@ -344,12 +344,12 @@ class Player(Bot):
         stacks = [my_stack, opp_stack]
         net_upper_raise_bound = round_state.raise_bounds()[1] # max raise across 3 boards
         net_cost = 0 # keep track of the net additional amount you are spending across boards this round
+        tight = True #keep track of if we should play TAG with this hand
 
         my_actions = [None] * NUM_BOARDS
         for i in range(NUM_BOARDS):
             if AssignAction in legal_actions[i]:
                 cards = self.board_allocations[i] #assign our cards that we made earlier
-                #DO IT HERE
                 my_actions[i] = AssignAction(cards) #add to our actions
 
             elif isinstance(round_state.board_states[i], TerminalState): #make sure the game isn't over at this board
@@ -363,16 +363,21 @@ class Player(Bot):
                 strength = self.hole_strengths[i]
 
                 if street < 3: #pre-flop
-                    raise_ammount = int(my_pips[i] + board_cont_cost + 0.4 * (pot_total + board_cont_cost)) #play a little conservatively pre-flop
-                else:
-                    raise_ammount = int(my_pips[i] + board_cont_cost + 0.75 * (pot_total + board_cont_cost)) #raise the stakes deeper into the game
+                    #Check if hand preflop is tight or not
+                    tight = self.check_hand_tight(self.board_allocations[i])
+                
+                raise_ammount = int(my_pips[i] + board_cont_cost + 0.75 * (pot_total + board_cont_cost)) #raise the stakes deeper into the game
                 
                 raise_ammount = max([min_raise, raise_ammount]) #make sure we have a valid raise
                 raise_ammount = min([max_raise, raise_ammount])
 
                 raise_cost = raise_ammount - my_pips[i] #how much it costs to make that raise
 
-                if RaiseAction in legal_actions[i] and (raise_cost <= my_stack - net_cost): #raise if we can and if we can afford it
+                if not tight:
+                    commit_action = FoldAction()
+                    commit_cost = 0
+
+                elif RaiseAction in legal_actions[i] and (raise_cost <= my_stack - net_cost): #raise if we can and if we can afford it
                     commit_action = RaiseAction(raise_ammount)
                     commit_cost = raise_cost
                 

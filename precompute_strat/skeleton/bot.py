@@ -11,10 +11,12 @@ class Bot():
     def handle_new_round(self, game_state, round_state, active):
         '''
         Called when a new round starts. Called NUM_ROUNDS times.
+
         Arguments:
         game_state: the GameState object.
         round_state: the RoundState object.
         active: your player's index.
+
         Returns:
         Nothing.
         '''
@@ -23,10 +25,12 @@ class Bot():
     def handle_round_over(self, game_state, terminal_state, active):
         '''
         Called when a round ends. Called NUM_ROUNDS times.
+
         Arguments:
         game_state: the GameState object.
         terminal_state: the TerminalState object.
         active: your player's index.
+
         Returns:
         Nothing.
         '''
@@ -36,10 +40,12 @@ class Bot():
         '''
         Where the magic happens - your code should implement this function.
         Called any time the engine needs an action from your bot.
+
         Arguments:
         game_state: the GameState object.
         round_state: the RoundState object.
         active: your player's index.
+
         Returns:
         Your actions.
         '''

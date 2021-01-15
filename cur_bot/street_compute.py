@@ -60,10 +60,95 @@ def calculate_strength(hole, iters, board, street):
 
         return hand_strength
 
+def street_strength(cards, street):
+    '''
+    RETURN:
+        Scoring:
+    9 - Flush (Straight all in same suit)
+    8 - Four of a kind
+    7 - Full house 
+    6 - Flush (All same suit)
+    5 - Straight (sequential)
+    4 - Three of a kind
+    3 - two pairs
+    2 - one pair
+    1 - high card
+    '''
+    suits ={}
+    ranks = {}
+
+    #Get frequencies
+    for card in cards:
+        if card[1] not in suits:
+            suits[card[1]] = card
+        else:
+            suits[card[1]] = card
+        
+        if rank_to_numeric(card[0]) not in ranks:
+            ranks[rank_to_numeric(card[0])] = card
+        else:
+            ranks[rank_to_numeric(card[0])] = card
+    
+    #Find pairs
+    pairs = [] #keep track of all of the pairs we identified
+    singles = [] #all other cards
+    for rank in ranks:
+        cards = ranks[rank]
+
+        if len(cards) == 1: #single card, can't be in a pair
+            singles.append(cards[0])
+        
+        elif len(cards) == 2 or len(cards) == 4: #a single pair or two pairs can be made here, add them all
+            pairs += cards
+        
+        else: #len(cards) == 3  A single pair plus an extra can be made here
+            pairs.append(cards[0])
+            pairs.append(cards[1])
+            singles.append(cards[2])
+    
+    #Find if ranks are sequential
+    rank_seq = sorted(ranks.keys()) == list(range(min(ranks.keys()), max(ranks.keys())+1))
+
+    #Find sizes of pairs / ranks
+    suit_size = {suit: len(suits[suit]) for suit in suits}
+
+    if rank_seq and max(suit_size.values()) == 5:
+        return 9
+    elif max(.values()) == 4:
+        return 8
+    elif 
+    
+
+
+def rank_to_numeric(rank):
+        '''
+        Method that converts our given rank as a string
+        into an integer ranking
+
+        rank: str - one of 'A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, 2'
+        '''
+        if rank.isnumeric(): #2-9, we can just use the int version of this string
+            return int(rank)
+        elif rank == 'T': #10 is T, so we need to specify it here
+            return 10
+        elif rank == 'J': #Face cards for the rest of them
+            return 11
+        elif rank == 'Q':
+            return 12
+        elif rank == 'K':
+            return 13
+        else: #Ace (A) is the only one left, give it the highest rank
+            return 14
+
+    
+'''''
+
+'''''
+    
 
 if __name__ == '__main__':
     _STREET = 3
-    _MONTE_CARLO_ITERS = 100000
+    _MONTE_CARLO_ITERS = 5000
     _RANKS = 'AKQJT98765432' 
     _SUITS = 'cdsh'
     _CARDS = [rank + suit for rank in _RANKS for suit in _SUITS]
@@ -79,7 +164,7 @@ if __name__ == '__main__':
             if not any(card in board for card in hole):
                 print(hole+board)
                 all_strengths.append(calculate_strength(hole, _MONTE_CARLO_ITERS, board, _STREET))
-                all_cards.append(hole + board)
+                all_cards.append(hole[0] + hole[1] + board[0] + board[1] + board[2])
 
     '''
     suited_strengths = [calculate_strength([hole[0] + 'c', hole[1] + 'c'], _MONTE_CARLO_ITERS) for hole in off_rank_holes] #all holes with the same suit

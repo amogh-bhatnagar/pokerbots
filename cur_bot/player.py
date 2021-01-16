@@ -395,11 +395,11 @@ class Player(Bot):
 
 
                 if board_cont_cost > 0: #our opp raised!!! we must respond
-
+                    '''
                     if board_cont_cost > 5: #<--- parameters to tweak. 
                         _INTIMIDATION = 0.15 # Configure this using flop_strengths
                         strength = max([0, strength - _INTIMIDATION]) #if our opp raises a lot, be cautious!
-                    
+                    '''
 
                     pot_odds = board_cont_cost / (pot_total + board_cont_cost)
 
